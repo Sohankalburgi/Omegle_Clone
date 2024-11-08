@@ -1,13 +1,14 @@
-
 import { useState } from 'react'
-import './App.css'
+import Landing from './Components/Landing'
+
+
 
 function App() {
-  
   const [username, setUsername] = useState("")
+
   return (
     <>
-
+    <Landing/>
     </>
   )
 }
