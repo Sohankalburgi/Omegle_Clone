@@ -1,90 +1,63 @@
 import { Socket } from "socket.io";
 import { RoomManager } from "./RoomManager";
-
-export interface User{
-    name : string,
-    socket : Socket
-}
+import { UserModel } from './models/User';
+import { QueueModel } from './models/Queue';
 
 export class UserManager{
-
-    private users : User[];
-    private queue : string[];
     private roomManager : RoomManager;
-
     constructor(){
-        this.users = [];
-        this.queue = [];
         this.roomManager = new RoomManager();
     }
 
-    addUser(name:string, socket:Socket){
-        this.users.push({
-            name,
-            socket
-        })
-        this.queue.push(socket.id);
+    async addUser(name:string, socket:Socket, io: any){
+        // Save user to DB
+        const user = await UserModel.create({ name, socketId: socket.id });
+        // Add to queue in DB
+        let queue = await QueueModel.findOne();
+        if (!queue) {
+            queue = await QueueModel.create({ socketIds: [socket.id] });
+        } else {
+            queue.socketIds.push(socket.id);
+            await queue.save();
+        }
         socket.emit("lobby");
-        this.clearQueue();
-
-        console.log('this is the init handlers methods exe')
-        this.initHandlers(socket);
+        await this.clearQueue(io);
+        this.initHandlers(socket, io);
     }
 
-    removeUser(socketId : string){
-        const user = this.users.find(({socket})=> socket.id === socketId);
-        this.users = this.users.filter(({socket})=>socket.id !== socketId);
-        this.queue = this.queue.filter((socket)=> socket !== socketId);
-    }
-
-    clearQueue(){
-        console.log(this.queue)
-        console.log('the users list')
-        console.log(this.users);
-
-        if(this.queue.length<2){
-            return;
+    async removeUser(socketId : string){
+        // Remove from queue in DB
+        let queue = await QueueModel.findOne();
+        if (queue) {
+            queue.socketIds = queue.socketIds.filter(id => id !== socketId);
+            await queue.save();
         }
-        const id1 = this.queue.pop();
-        const id2 = this.queue.pop();
-        console.log("id1",id1)
-        console.log("id2",id2)
-        
-        const user1 = this.users.find((x)=>
-            x.socket.id === id1
-        );
-
-        const user2 = this.users.find((x)=>
-            x.socket.id === id2
-        );
-
-        console.log("users")
-        console.log(user1);
-        console.log(user2);
-
-        if(!user1 || !user2 ){
-            return;
-        }
-        console.log('creating rooms');
-        const room = this.roomManager.createRooms(user1,user2);
-        this.clearQueue();
+        // Optionally remove user from DB (if you want to keep, comment this out)
+        // await UserModel.deleteOne({ socketId });
     }
 
-    initHandlers(socket:Socket){
+    async clearQueue(io: any){
+        let queue = await QueueModel.findOne();
+        if (!queue || queue.socketIds.length < 2) return;
+        const id1 = queue.socketIds.shift();
+        const id2 = queue.socketIds.shift();
+        await queue.save();
+        const user1 = await UserModel.findOne({ socketId: id1 });
+        const user2 = await UserModel.findOne({ socketId: id2 });
+        if(!user1 || !user2) return;
+        await this.roomManager.createRooms(user1, user2, io);
+        await this.clearQueue(io);
+    }
+
+    initHandlers(socket:Socket, io: any){
         socket.on("offer", ({sdp,roomId}:{sdp: string,roomId: string})=>{
-            console.log("under the offer of the offer in inithandler")
-            this.roomManager.onOffer(roomId,sdp,socket.id);
+            this.roomManager.onOffer(roomId,sdp,socket.id, io);
         }); 
-
         socket.on("answer",({sdp,roomId}:{sdp: string, roomId: string})=>{
-            console.log("under the offer of the answer in inithandler")
-            this.roomManager.onAnswer(roomId,sdp,socket.id);
+            this.roomManager.onAnswer(roomId,sdp,socket.id, io);
         });
-
         socket.on("add-ice-candidate",({candidate, roomId, type})=>{
-            this.roomManager.onIceCandidate(roomId,socket.id,candidate,type);
+            this.roomManager.onIceCandidate(roomId,socket.id,candidate,type, io);
         });
-
-        
     }
 }

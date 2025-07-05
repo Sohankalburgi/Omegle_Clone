@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { io } from "socket.io-client";
+import './Room.css'; // Import the CSS file for styling
 
 const URL = 'http://localhost:3000';
 
@@ -27,17 +28,17 @@ const Room = ({name,localAudioTrack, localVideoTrack}) => {
       setLobby(false);
 
       const pc = new RTCPeerConnection();
+      console.log("___________________________")
+      console.log(pc);
       setSendingPC(pc);
       
       if(localAudioTrack){
-        console.log("added track");
-        console.log(localAudioTrack);
+        
         pc.addTrack(localAudioTrack);
       }
 
       if(localVideoTrack){
-        console.log("added track");
-        console.log(localAudioTrack);
+       
         pc.addTrack(localVideoTrack);
       }
      
@@ -195,11 +196,22 @@ const Room = ({name,localAudioTrack, localVideoTrack}) => {
    
    
     return (
-    <div>
-      <h2>Hi SOhan</h2>
-      <video width={"400px"} height={"400px"} ref={localVideoRef}></video>
-      {lobby? <h4>waiting for someone to connect you</h4>:""}
-      <video width={"400px"} height={"400px"} ref={remoteVideoRef}></video>
+    <div className="room-container">
+      <header className="room-header">
+        <h1>Omegle Clone</h1>
+        <h2>Welcome, {name || 'Guest'}!</h2>
+      </header>
+      <div className="video-section">
+        <div className="video-block">
+          <h3>Your Video</h3>
+          <video className="video-player" width={400} height={400} ref={localVideoRef} autoPlay muted></video>
+        </div>
+        <div className="video-block">
+          <h3>Stranger's Video</h3>
+          <video className="video-player" width={400} height={400} ref={remoteVideoRef} autoPlay></video>
+        </div>
+      </div>
+      {lobby && <div className="lobby-message">Waiting for someone to connect with you...</div>}
     </div>
   )
 }

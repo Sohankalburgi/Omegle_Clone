@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import Room from "./Room";
+import './Landing.css';
 
 
 const Landing = () => {
@@ -42,26 +42,29 @@ const Landing = () => {
   
   if(!joined){
   return (
-    <>
-    <video ref={videoRef}></video>
-      <label htmlFor="username">Username</label>
-      <input
-        type="text"
-        name="username"
-        id="username"
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      
-      <button  onClick={()=>setJoined(true)}>
-        Join
-      </button>
-
-    </>
+    <div className="landing-container">
+      <div className="landing-card">
+        <h1>Omegle Clone</h1>
+        <video ref={videoRef} className="landing-video" autoPlay muted></video>
+        <label htmlFor="username">Username</label>
+        <input
+          type="text"
+          name="username"
+          id="username"
+          placeholder="Enter your name..."
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        
+        <button onClick={()=>setJoined(true)}>
+          Join
+        </button>
+      </div>
+    </div>
   );
 }
 else{
   return <>
-    <Room name={name} localAudioTrack={localAudioTrack} localVideoTrack={localVideoTrack}/>
+    <Room name={username} localAudioTrack={localAudioTrack} localVideoTrack={localVideoTrack}/>
   </>
 }
 };
